@@ -28,8 +28,10 @@ from urllib.request import urlopen
 from youtube_search import YoutubeSearch
 from gtts import gTTS
 from playsound import playsound
-import pygame
+import pygame,re
 from httpx import Timeout
+from geopy.geocoders import Nominatim
+from geopy.distance import geodesic
 
 
 
@@ -58,7 +60,7 @@ def wishMe():
 	assname =("tik tik")
 	speak("I am your Assistant")
 	speak(assname)
-	# speak('What can i do for you')
+	speak('What can i do for you')
 	
 
 def username():
@@ -182,6 +184,29 @@ def play_youtube_video(query):
         webbrowser.open(video_url)
     else:
         speak('Sorry i am unable to find the video')
+	
+def get_distance(location1, location2):
+    geolocator = Nominatim(user_agent="distance_app")
+    location1 = geolocator.geocode(location1)
+    location2 = geolocator.geocode(location2)
+    
+    if location1 is None or location2 is None:
+        return "Invalid location"
+    
+    coords1 = (location1.latitude, location1.longitude)
+    coords2 = (location2.latitude, location2.longitude)
+    
+    distance = geodesic(coords1, coords2).kilometers
+    distance = round(distance, 2)  # Format to two decimal places
+    return distance
+
+def extract_locations(query):
+    pattern = r"distance between (.+) and (.+)"
+    matches = re.findall(pattern, query)
+    if matches:
+        return matches[0]
+    else:
+        return None
     
 if __name__ == '__main__':
 	clear = lambda: os.system('cls')
@@ -570,3 +595,13 @@ if __name__ == '__main__':
 			else:
 				speak('Please try to say like, "Translate following to yout desired language!"')
 
+
+		elif "distance between" in query:
+
+			locations = extract_locations(query)
+			if locations is not None:
+				location1, location2 = locations
+				distance = get_distance(location1, location2)
+				speak(f"The distance between {location1} and {location2} is approximately {distance} kilometers.")
+			else:
+				speak("sorry i can't find the locations.Please try again")
