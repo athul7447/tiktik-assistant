@@ -32,6 +32,9 @@ import pygame,re
 from httpx import Timeout
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
+from word2number import w2n
+from dotenv import dotenv_values
+
 
 
 
@@ -41,6 +44,7 @@ engine = pyttsx3.init('sapi5')
 voices = engine.getProperty('voices')
 engine.setProperty('voice', voices[1].id)
 recog1 = sr.Recognizer()
+env_vars = dotenv_values()
 
 def speak(audio):
     engine.say(audio)
@@ -48,14 +52,14 @@ def speak(audio):
 
 def wishMe():
     hour = int(datetime.datetime.now().hour)
-    # if hour>= 0 and hour<12:
-    # 	speak("Good Morning Sir !")
+    if hour>= 0 and hour<12:
+        speak("Good Morning Sir !")
 
-    # elif hour>= 12 and hour<18:
-    # 	speak("Good Afternoon Sir !")
+    elif hour>= 12 and hour< 18:
+        speak("Good Afternoon Sir !")
 
-    # else:
-    # 	speak("Good Evening Sir !")
+    else:
+        speak("Good Evening Sir !")
 
     assname =("tik tik")
     speak("I am your Assistant")
@@ -100,30 +104,16 @@ def takeCommand():
 
 def sendEmail(to, content):
     print(to,content)
-    server = smtplib.SMTP("sandbox.smtp.mailtrap.io", 2525)
+    server = smtplib.SMTP(env_vars['EMAIL_SERVER'], env_vars['EMAIL_PORT'])
     server.ehlo()
     server.starttls()
     print(server)
     # Enable low security in gmail
     # server.login('your email id', 'your email password')
-    server.login("60cdaa337896fb", "9486eba100e56f")
+    server.login(env_vars['EMAIL_USERNAME'], env_vars["EMAIL_PASSWORD"])
     server.sendmail('tiktik@world.traveller', to, content)
 
     server.close()
-    
-    # sender = "tiktik@world.traveller"
-    # receiver = to
-
-    # message = f"""\
-    # Subject: Hi Mailtrap
-    # To: {receiver}
-    # From: {sender}
-
-    # This is a test e-mail message."""
-
-    # with smtplib.SMTP("sandbox.smtp.mailtrap.io", 2525) as server:
-    # 	server.login("60cdaa337896fb", "9486eba100e56f")
-    # 	server.sendmail(sender, receiver, message)
     
 # A tuple containing all the language and
 # codes of the language will be detcted
@@ -176,7 +166,8 @@ dic = ('afrikaans', 'af', 'albanian', 'sq',
 
 def send_message(message):
     API_URL = 'https://api.openai.com/v1/chat/completions'
-    API_KEY = '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'
+    api_key = env_vars['OPENAPI_SECRET_KEY']
+    API_KEY = api_key   
     headers = {
         'Content-Type': 'application/json',
         'Authorization': f'Bearer {API_KEY}'
@@ -190,6 +181,7 @@ def send_message(message):
     
     response = requests.post(API_URL, headers=headers, json=data)
     response_data = response.json()
+    print(response_data)
     data = None
     if 'choices' in response_data:
         data = response_data['choices'][0]['message']['content']  
@@ -609,7 +601,6 @@ if __name__ == '__main__':
                 if index != -1:
                     result = query[index + 3:].strip()  # Extract the text after "to" and remove leading/trailing whitespace
                     language = result.lower()
-                    print(language,":::::::::::")
                     speak("what i want translate to "+language)
                     command = takeCommand()
                     if command:
@@ -625,7 +616,6 @@ if __name__ == '__main__':
                         # destination language which is stored in to_lang.
                         # Also, we have given 3rd argument as False because
                         # by default it speaks very slowly
-                        print(to_lang,":::::::::")
                         speaks = gTTS(text=text, lang=to_lang, slow=False)
 
                         # Using save() method to save the translated
@@ -682,13 +672,18 @@ if __name__ == '__main__':
                     match = re.search(pattern, query)
 
                     if match:
-                        num_days = int(match.group(1))
-                print(num_days)
+                        try:
+                            num_days = int(match.group(1))  # Attempt to convert the string 'one' to an integer
+                        except ValueError:
+                            num_days = w2n.word_to_num(match.group(1))
                 speak("Please wait i'm working on it")
                 query = "give a short travel itenary from "+ location1 + " to "+ location2 +" for "+ str(num_days) + " days"
                 print(query)
                 response_message = send_message(query)
-                speak(response_message)
+                if response_message is not None:
+                    speak(response_message)
+                else:
+                    speak("i could`nt find anything please try again")
             else:
                 speak("sorry i can't find the locations.Please try again")
                 
