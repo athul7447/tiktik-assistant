@@ -32,8 +32,6 @@ import pygame,re
 from httpx import Timeout
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
-import openai
-import keyboard
 
 
 
@@ -217,6 +215,29 @@ def play_youtube_video(query):
         webbrowser.open(video_url)
     else:
         speak('Sorry i am unable to find the video')
+    
+def get_distance(location1, location2):
+    geolocator = Nominatim(user_agent="distance_app")
+    location1 = geolocator.geocode(location1)
+    location2 = geolocator.geocode(location2)
+    
+    if location1 is None or location2 is None:
+        return "Invalid location"
+    
+    coords1 = (location1.latitude, location1.longitude)
+    coords2 = (location2.latitude, location2.longitude)
+    
+    distance = geodesic(coords1, coords2).kilometers
+    distance = round(distance, 2)  # Format to two decimal places
+    return distance
+
+def extract_locations(query):
+    pattern = r"distance between (.+) and (.+)"
+    matches = re.findall(pattern, query)
+    if matches:
+        return matches[0]
+    else:
+        return None
     
 def get_distance(location1, location2):
     geolocator = Nominatim(user_agent="distance_app")
